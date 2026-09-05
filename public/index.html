@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mafia — God Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#131018; --panel:#1d1927; --panel2:#272235;
+    --ink:#ece8f2; --muted:#958ea6; --line:rgba(255,255,255,.09);
+    --mafia:#d64a41; --doctor:#2fb4a0; --detective:#e0a44a; --villager:#8b93a6;
+    --god:#b3a7f0; --accent:#b3a7f0; --danger:#d64a41;
+    --shadow:0 18px 50px rgba(0,0,0,.45);
+    --r:14px;
+  }
+  body.phase-day{
+    --bg:#e3e6ee; --panel:#f4f6fb; --panel2:#e7eaf3;
+    --ink:#1b2030; --muted:#5b6376; --line:rgba(0,0,0,.10);
+    --shadow:0 18px 40px rgba(40,50,80,.16);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    min-height:100vh; transition:background .6s ease,color .6s ease;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:940px;margin:0 auto;padding:26px 18px 60px}
+  .display{font-family:'Oswald',sans-serif;letter-spacing:.02em}
+  .mono{font-family:'Space Mono',monospace}
+
+  /* header / masthead */
+  .mast{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+  .brand{font-family:'Oswald',sans-serif;font-weight:700;font-size:30px;text-transform:uppercase;letter-spacing:.08em;line-height:1}
+  .brand small{display:block;font-weight:300;font-size:12px;letter-spacing:.34em;color:var(--muted);margin-top:6px}
+  .phasepill{font-family:'Space Mono',monospace;font-size:12px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);text-transform:uppercase;letter-spacing:.14em;white-space:nowrap}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:var(--shadow)}
+  .panel + .panel{margin-top:16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+
+  h2.sec{font-family:'Oswald',sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.14em;font-size:15px;color:var(--muted);margin:0 0 14px}
+
+  label{display:block;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+  input[type=text]{width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:16px;font-family:inherit}
+  input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px}
+
+  .stepper{display:flex;align-items:center;gap:10px}
+  .stepper .val{font-family:'Space Mono',monospace;font-size:22px;min-width:34px;text-align:center}
+  .rolelabel{display:flex;align-items:center;gap:9px;margin-bottom:6px;font-size:13px}
+  .dot{width:11px;height:11px;border-radius:50%}
+  .dot.mafia{background:var(--mafia)} .dot.doctor{background:var(--doctor)}
+  .dot.detective{background:var(--detective)} .dot.villager{background:var(--villager)}
+
+  button{cursor:pointer;font-family:inherit;border:none;border-radius:10px;font-size:15px;transition:transform .06s ease,filter .15s ease}
+  button:active{transform:translateY(1px)}
+  .btn{padding:13px 18px;background:var(--accent);color:#151024;font-weight:700;letter-spacing:.02em}
+  .btn:hover{filter:brightness(1.07)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.small{padding:8px 12px;font-size:13px}
+  .btn.round{width:36px;height:36px;padding:0;font-size:20px;background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  .btn.danger{background:var(--danger);color:#fff}
+
+  .code{font-family:'Oswald',sans-serif;font-weight:700;font-size:44px;letter-spacing:.22em;color:var(--accent);text-align:center;padding:6px 0}
+  .hint{font-size:13px;color:var(--muted);line-height:1.55}
+
+  /* roster */
+  .roster{display:flex;flex-direction:column;gap:8px}
+  .prow{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+  .prow.dead{opacity:.5}
+  .prow .nm{flex:1;font-size:15px}
+  .prow.dead .nm{text-decoration:line-through}
+  .tag{font-family:'Space Mono',monospace;font-size:11px;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.1em;border:1px solid var(--line)}
+  .tag.mafia{color:var(--mafia);border-color:var(--mafia)}
+  .tag.doctor{color:var(--doctor);border-color:var(--doctor)}
+  .tag.detective{color:var(--detective);border-color:var(--detective)}
+  .tag.villager{color:var(--villager);border-color:var(--villager)}
+  .tag.you{color:var(--accent);border-color:var(--accent)}
+  .tag.offline{color:var(--muted);border-color:var(--muted)}
+  .prow.offline{opacity:.72}
+  .skull{font-size:14px;color:var(--muted)}
+
+  /* role reveal card */
+  .rolecard{text-align:center;padding:30px 22px;border-radius:var(--r);border:1px solid var(--line);background:var(--panel2)}
+  .rolecard .kicker{font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+  .rolecard .name{font-family:'Oswald',sans-serif;font-weight:700;font-size:52px;text-transform:uppercase;letter-spacing:.05em;margin:6px 0}
+  .rolecard.mafia .name{color:var(--mafia)} .rolecard.doctor .name{color:var(--doctor)}
+  .rolecard.detective .name{color:var(--detective)} .rolecard.villager .name{color:var(--villager)}
+  .rolecard .desc{color:var(--muted);font-size:14px;max-width:420px;margin:8px auto 0;line-height:1.55}
+
+  /* target picker */
+  .targets{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  @media(max-width:560px){.targets{grid-template-columns:1fr}}
+  .target{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--ink);text-align:left;font-size:15px;display:flex;align-items:center;gap:9px}
+  .target:hover{border-color:var(--accent)}
+  .target.chosen{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+
+  /* narration log */
+  .log{font-family:'Space Mono',monospace;font-size:13px;line-height:1.7;max-height:230px;overflow:auto}
+  .log .line{padding:5px 0;border-bottom:1px dashed var(--line);color:var(--muted)}
+  .log .line:last-child{color:var(--ink)}
+
+  .banner{border-radius:var(--r);padding:20px;text-align:center;border:1px solid var(--line);font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.1em}
+  .banner.town{color:var(--doctor);border-color:var(--doctor)}
+  .banner.mafia{color:var(--mafia);border-color:var(--mafia)}
+  .banner .big{font-size:40px;font-weight:700}
+
+  .statline{display:flex;gap:18px;flex-wrap:wrap;font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);margin-top:4px}
+  .statline b{color:var(--ink)}
+  .center{text-align:center}
+  .mt{margin-top:16px}.mt8{margin-top:8px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .spread{justify-content:space-between}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#000;color:#fff;padding:11px 18px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:50}
+  .toast.show{opacity:.94}
+  .hide{display:none !important}
+</style>
+</head>
+<body class="phase-night">
+<div class="wrap">
+  <div class="mast">
+    <div class="brand">Mafia<small>God Console</small></div>
+    <div id="phasepill" class="phasepill">Lobby</div>
+  </div>
+  <div id="app"></div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const app = document.getElementById('app');
+const phasepill = document.getElementById('phasepill');
+const toastEl = document.getElementById('toast');
+
+let state = null;              // latest server view
+let myRoleReveal = null;       // {role, teammates} from youAre
+let detectiveResult = null;    // {name,isMafia} — the team's shared result for the last resolved night
+let lastNightRound = 0;        // resets per-night UI state when a new night starts
+let joined = false;
+
+// Persists which room/seat this browser holds so it can reclaim it after
+// a dropped connection or a server restart, instead of losing the game.
+const SESSION_KEY = 'mafiaSession';
+function saveSession(s){ try{ localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }catch{} }
+function loadSession(){ try{ return JSON.parse(localStorage.getItem(SESSION_KEY)); }catch{ return null; } }
+function clearSession(){ try{ localStorage.removeItem(SESSION_KEY); }catch{} }
+
+socket.on('connect', () => {
+  const s = loadSession();
+  if (!s) return;
+  socket.emit('rejoinRoom', { code: s.code, token: s.token, isHost: s.role === 'host' }, (r) => {
+    if (r && r.ok) { joined = true; render(); }
+    else {
+      // a genuine failure (room ended / host removed us) — say why instead of
+      // silently dumping the player back on the landing screen
+      clearSession(); joined = false; state = null;
+      toast((r && r.error) || 'Could not rejoin that room.');
+      render();
+    }
+  });
+});
+
+const ROLE_DESC = {
+  mafia: "Each night you and your fellow mafia agree on one person to eliminate. By day, blend in.",
+  doctor: "Each night you and your fellow doctors vote on one person to protect together. If the mafia strike them, they live.",
+  detective: "Each night you and your fellow detectives vote on one person to investigate together — the whole team learns if they're mafia.",
+  villager: "You have no night power — only your voice and your vote. Find the mafia by day.",
+};
+
+function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'),2600); }
+
+socket.on('toast', toast);
+socket.on('gameEnded', () => { clearSession(); state=null; joined=false; myRoleReveal=null; detectiveResult=null; toast('Game ended.'); render(); });
+socket.on('removed', () => { clearSession(); state=null; joined=false; myRoleReveal=null; detectiveResult=null; toast('The host removed you from the lobby.'); render(); });
+socket.on('youAre', (d)=>{ myRoleReveal=d; render(); });
+socket.on('detectiveResult', (d)=>{
+  detectiveResult = d;
+  toast(`${d.name} is ${d.isMafia ? 'MAFIA' : 'NOT mafia'}`);
+  render();
+});
+socket.on('state', (s)=>{
+  if (s.phase==='night' && s.round !== lastNightRound) { detectiveResult=null; lastNightRound=s.round; }
+  state=s; applyTheme(); render();
+});
+
+function applyTheme(){
+  const day = state && state.phase==='day';
+  document.body.classList.toggle('phase-day', !!day);
+  document.body.classList.toggle('phase-night', !day);
+}
+
+/* ----------------------------- LANDING ---------------------------- */
+let cfg = { mafia:1, doctor:1, detective:1 };
+
+function landing(){
+  return `
+  <div class="grid2">
+    <div class="panel">
+      <h2 class="sec">Host a game</h2>
+      <p class="hint mt8">You become <b>God</b> — you see every role and run the night. Set how many of each role; everyone else is a villager.</p>
+      <div class="mt">
+        ${stepperRow('mafia','Mafia')}
+        ${stepperRow('doctor','Doctor')}
+        ${stepperRow('detective','Detective')}
+      </div>
+      <button class="btn mt" style="width:100%" onclick="createRoom()">Create room</button>
+    </div>
+    <div class="panel">
+      <h2 class="sec">Join a game</h2>
+      <p class="hint mt8">Enter the 4-letter code your host shares. You'll get your secret role on this screen.</p>
+      <div class="mt"><label>Room code</label><input id="joinCode" type="text" maxlength="4" placeholder="ABCD" style="text-transform:uppercase" /></div>
+      <div class="mt"><label>Your name</label><input id="joinName" type="text" maxlength="20" placeholder="e.g. Aisha" /></div>
+      <div class="mt"><label>WhatsApp number (optional)</label><input id="joinPhone" type="text" maxlength="18" placeholder="e.g. 919876543210" /></div>
+      <p class="hint mt8">Include your country code, no “+”. The host uses this to send your secret role on WhatsApp. Leave blank to just use the on-screen role.</p>
+      <button class="btn ghost mt" style="width:100%" onclick="joinRoom()">Join room</button>
+    </div>
+  </div>`;
+}
+function stepperRow(key,label){
+  return `<div class="row spread" style="margin-bottom:10px">
+    <div class="rolelabel"><span class="dot ${key}"></span>${label}</div>
+    <div class="stepper">
+      <button class="btn round" onclick="bump('${key}',-1)">−</button>
+      <span class="val" id="val-${key}">${cfg[key]}</span>
+      <button class="btn round" onclick="bump('${key}',1)">+</button>
+    </div></div>`;
+}
+window.bump=(k,d)=>{ cfg[k]=Math.max(k==='mafia'?1:0,Math.min(10,cfg[k]+d)); document.getElementById('val-'+k).textContent=cfg[k]; };
+window.createRoom=()=>{ socket.emit('createRoom',{config:cfg},(r)=>{ if(r&&r.ok){ joined=true; saveSession({role:'host',code:r.code,token:r.hostToken}); } else toast('Could not create room'); }); };
+window.joinRoom=()=>{
+  const code=document.getElementById('joinCode').value.toUpperCase().trim();
+  const name=document.getElementById('joinName').value.trim();
+  const phone=document.getElementById('joinPhone').value.trim();
+  if(!code||!name) return toast('Enter a code and a name');
+  socket.emit('joinRoom',{code,name,phone},(r)=>{ if(r&&r.ok){joined=true; saveSession({role:'player',code:r.code,token:r.token}); render();} else toast(r&&r.error||'Could not join'); });
+};
+
+/* ----------------------------- RENDER ----------------------------- */
+function render(){
+  if(!state || !joined){ phasepill.textContent='Lobby'; app.innerHTML=landing(); return; }
+  phasepill.textContent = state.phase==='over' ? (state.winner==='town'?'Town wins':'Mafia wins')
+    : state.phase==='night' ? `Night ${state.round}`
+    : state.phase==='day' ? `Day ${state.round}` : 'Lobby';
+
+  if(state.isHost) return renderHost();
+  return renderPlayer();
+}
+
+/* ------- shared blocks ------- */
+function rosterBlock(showRoles, opts){
+  const allowRemove = opts && opts.allowRemove;
+  return `<div class="roster">${state.roster.map(p=>{
+    const isYou = state.you && p.id===state.you.id;
+    let tag='';
+    if(showRoles && p.role) tag=`<span class="tag ${p.role}">${p.role}</span>`;
+    else if(isYou && state.you.role) tag=`<span class="tag ${state.you.role}">${state.you.role}</span>`;
+    if(isYou) tag+=` <span class="tag you">you</span>`;
+    // a dropped phone is held, not removed — show it so the host can tell a
+    // reconnecting player apart from a genuine no-show
+    const offline = p.connected===false ? `<span class="tag offline">offline</span>` : '';
+    const removeBtn = allowRemove && !isYou
+      ? `<button class="btn small ghost" onclick="removePlayer('${p.id}')">Remove</button>` : '';
+    return `<div class="prow ${p.alive?'':'dead'} ${p.connected===false?'offline':''}">
+      <span class="nm">${escapeHtml(p.name)}</span>
+      ${p.alive?'':'<span class="skull">✕ out</span>'} ${offline} ${tag} ${removeBtn}
+    </div>`;
+  }).join('')}</div>`;
+}
+function logBlock(){
+  return `<div class="log">${state.narration.map(n=>`<div class="line">${escapeHtml(n.text)}</div>`).join('')}</div>`;
+}
+function statLine(){
+  return `<div class="statline">
+    <span>Alive <b>${state.counts.alive}</b></span>
+    <span>Town <b>${state.counts.townAlive}</b></span>
+    <span>Mafia <b>${state.counts.mafiaAlive}</b></span>
+  </div>`;
+}
+
+/* --------------------------- HOST VIEWS --------------------------- */
+function renderHost(){
+  if(state.phase==='lobby') return hostLobby();
+  if(state.phase==='over')  return gameOver(true);
+  let mid='';
+  if(state.phase==='night') mid=hostNight();
+  if(state.phase==='day')   mid=hostDay();
+  const dispatch = (state.round===1 && state.phase==='night') ? whatsappPanel() : '';
+  app.innerHTML = `
+    ${mid}
+    ${dispatch}
+    <div class="panel"><h2 class="sec">Everyone (God view)</h2>${statLine()}${rosterBlock(true)}</div>
+    <div class="panel"><h2 class="sec">God's narration</h2>${logBlock()}</div>
+    <div class="row mt" >
+      <button class="btn ghost small" onclick="newGame()">New game (reshuffle roles)</button>
+      <button class="btn danger small" onclick="endGame()">End game</button>
+    </div>
+  `;
+}
+function hostLobby(){
+  const total=state.roster.length;
+  const need=state.config.mafia+state.config.doctor+state.config.detective;
+  const villagers=Math.max(0,total-need);
+  const ok=total>=4 && need<=total;
+  app.innerHTML=`
+    <div class="panel center">
+      <h2 class="sec">Share this code</h2>
+      <div class="code">${state.code}</div>
+      <p class="hint">Friends open this site and tap <b>Join a game</b> with the code. Keep this console open — you're God.</p>
+    </div>
+    <div class="grid2 mt">
+      <div class="panel">
+        <h2 class="sec">Players joined (${total})</h2>
+        ${total? rosterBlock(false,{allowRemove:true}) : '<p class="hint">No one yet…</p>'}
+        <p class="hint mt8">Players marked <b>offline</b> just lost connection — their seat is held and they'll rejoin automatically. Use <b>Remove</b> only for genuine no-shows before dealing roles.</p>
+      </div>
+      <div class="panel">
+        <h2 class="sec">Setup</h2>
+        <div class="rolelabel"><span class="dot mafia"></span>Mafia <b style="margin-left:auto" class="mono">${state.config.mafia}</b></div>
+        <div class="rolelabel"><span class="dot doctor"></span>Doctor <b style="margin-left:auto" class="mono">${state.config.doctor}</b></div>
+        <div class="rolelabel"><span class="dot detective"></span>Detective <b style="margin-left:auto" class="mono">${state.config.detective}</b></div>
+        <div class="rolelabel"><span class="dot villager"></span>Villagers <b style="margin-left:auto" class="mono">${villagers}</b></div>
+        <button class="btn mt" style="width:100%" onclick="startGame()" ${ok?'':'disabled'}>
+          ${total<4?'Need 4+ players':(need>total?'Too many roles':'Deal roles & begin night')}
+        </button>
+      </div>
+    </div>`;
+}
+function roleMessage(p){
+  const url = window.location.origin;
+  const desc = ROLE_DESC[p.role] || '';
+  return `*Mafia — your secret role*\n\nYou are: *${p.role.toUpperCase()}*\n\n${desc}\n\nKeep this secret! When night falls, open the game to make your move:\n${url}`;
+}
+function waLink(p){ return `https://wa.me/${p.phone}?text=${encodeURIComponent(roleMessage(p))}`; }
+
+function whatsappPanel(){
+  const rows = state.roster.map(p=>{
+    const tag = p.role ? `<span class="tag ${p.role}">${p.role}</span>` : '';
+    const action = p.phone
+      ? `<a class="btn small" style="text-decoration:none;color:#151024" href="${waLink(p)}" target="_blank" rel="noopener" onclick="markSent(this)">WhatsApp ▸</a>`
+      : `<button class="btn small ghost" onclick='copyRole(${JSON.stringify(p.id)})'>Copy role</button>`;
+    return `<div class="prow"><span class="nm">${escapeHtml(p.name)}</span>${tag}${action}</div>`;
+  }).join('');
+  return `<div class="panel">
+    <h2 class="sec">Send roles on WhatsApp</h2>
+    <p class="hint">Each button opens a pre-filled WhatsApp chat to that player — <b>you still press Send</b> (WhatsApp can't auto-send). Players without a number get a “Copy role” button so you can paste it yourself.</p>
+    <div class="roster mt">${rows}</div>
+  </div>`;
+}
+window.markSent=(el)=>{ el.textContent='Sent ✓'; el.style.filter='grayscale(.4)'; el.style.opacity='.7'; };
+window.copyRole=(id)=>{
+  const p=state.roster.find(x=>x.id===id); if(!p) return;
+  navigator.clipboard?.writeText(roleMessage(p)).then(()=>toast(`${p.name}'s role copied`),()=>toast('Copy failed'));
+};
+
+function hostNight(){
+  const ns=state.nightStatus||{};
+  const chip=(done,total,label)=> total>0?`<span class="tag ${done>=total?'doctor':'villager'}">${label} ${done}/${total}</span>`:'';
+  return `<div class="panel">
+    <h2 class="sec">Night ${state.round} — waking the town</h2>
+    <p class="hint">Players are acting privately on their own screens. Resolve when you're ready (or once everyone has acted).</p>
+    <div class="row mt">
+      ${chip(ns.mafiaVoted,ns.mafiaTotal,'Mafia')}
+      ${chip(ns.doctorActed,ns.doctorTotal,'Doctor')}
+      ${chip(ns.detectiveActed,ns.detectiveTotal,'Detective')}
+    </div>
+    <button class="btn mt" onclick="resolveNight()">Resolve night → announce dawn</button>
+  </div>`;
+}
+function hostDay(){
+  const alive=state.roster.filter(p=>p.alive);
+  const died = state.lastNight;
+  const summary = died ? (died.diedName?`Last night <b>${escapeHtml(died.diedName)}</b> was killed.`
+              : died.saved?`The doctor saved the target — no one died.`:`No one died last night.`) : '';
+  return `<div class="panel">
+    <h2 class="sec">Day ${state.round} — the town decides</h2>
+    <p class="hint">${summary} Run discussion & the poll on <b>WhatsApp</b>, then enter who the town voted out.</p>
+    <div class="mt"><label>Voted out</label>
+      <div class="targets" id="dayTargets">
+        ${alive.map(p=>`<button class="target" onclick="pickDay('${p.id}',this)"><span class="dot villager"></span>${escapeHtml(p.name)}</button>`).join('')}
+        <button class="target" onclick="pickDay('',this)">No elimination</button>
+      </div>
+    </div>
+    <button class="btn mt" id="dayConfirm" onclick="confirmDay()" disabled>Confirm result → next night</button>
+  </div>`;
+}
+let dayPick=undefined;
+window.pickDay=(id,el)=>{ dayPick=id; document.querySelectorAll('#dayTargets .target').forEach(t=>t.classList.remove('chosen')); el.classList.add('chosen'); document.getElementById('dayConfirm').disabled=false; };
+window.confirmDay=()=>{ socket.emit('dayEliminate',{targetId:dayPick||null}); dayPick=undefined; };
+window.startGame=()=>socket.emit('startGame');
+window.resolveNight=()=>socket.emit('resolveNight');
+window.resetGame=()=>socket.emit('resetGame');
+window.newGame=()=>socket.emit('newGame');
+window.removePlayer=(id)=>{
+  const p=state.roster.find(x=>x.id===id);
+  if(p && confirm(`Remove ${p.name} from the lobby?`)) socket.emit('removePlayer',{targetId:id});
+};
+// Deliberately leaving releases the seat and the saved session, so this
+// browser isn't auto-pulled back into the old game on the next page load.
+window.leaveGame=()=>{
+  if(!confirm('Leave this game? You can then join a different room.')) return;
+  socket.emit('leaveRoom',{},()=>{
+    clearSession(); state=null; joined=false; myRoleReveal=null; detectiveResult=null;
+    toast('You left the game.'); render();
+  });
+};
+window.endGame=()=>{ if(confirm('End this game for everyone?')) socket.emit('endGame'); };
+
+/* -------------------------- PLAYER VIEWS -------------------------- */
+function renderPlayer(){
+  if(state.phase==='lobby') return playerLobby();
+  if(state.phase==='over')  return gameOver(false);
+
+  // dead player = spectator with god view
+  if(state.spectator){
+    app.innerHTML=`
+      <div class="panel center"><h2 class="sec">You're out — spectating</h2>
+        <p class="hint">You can see everything now. Watch the rest play out; don't tip off the living!</p></div>
+      <div class="panel"><h2 class="sec">Everyone (God view)</h2>${statLine()}${rosterBlock(true)}</div>
+      <div class="panel"><h2 class="sec">Narration</h2>${logBlock()}</div>`;
+    return;
+  }
+
+  let top = roleCard();
+  let mid = '';
+  if(state.phase==='night') mid = playerNight();
+  if(state.phase==='day')   mid = playerDay();
+
+  app.innerHTML = `
+    ${top}
+    ${mid}
+    <div class="panel"><h2 class="sec">The town</h2>${statLine()}${rosterBlock(false)}</div>
+    <div class="panel"><h2 class="sec">Narration</h2>${logBlock()}</div>
+    <div class="row mt"><button class="btn ghost small" onclick="leaveGame()">Leave game</button></div>`;
+}
+function playerLobby(){
+  app.innerHTML=`<div class="panel center">
+    <h2 class="sec">You're in — room ${state.code}</h2>
+    <p class="hint">Waiting for the host to start. Your secret role will appear here the moment the game begins.</p>
+    <div class="mt">${rosterBlock(false)}</div>
+    <div class="row mt" style="justify-content:center"><button class="btn ghost small" onclick="leaveGame()">Leave game</button></div>
+  </div>`;
+}
+function roleCard(){
+  const r=state.you.role; if(!r) return '';
+  const mates=(myRoleReveal&&myRoleReveal.teammates)||[];
+  const mateLine = (r==='mafia' || r==='detective') && mates.length ? `<div class="hint mt8">With you: <b>${mates.map(escapeHtml).join(', ')}</b></div>` : '';
+  return `<div class="rolecard ${r}">
+    <div class="kicker">Your secret role</div>
+    <div class="name">${r}</div>
+    <div class="desc">${ROLE_DESC[r]}</div>
+    ${mateLine}
+  </div>`;
+}
+function playerNight(){
+  const a=state.myAction;
+  if(!a){
+    return `<div class="panel center"><h2 class="sec">Night ${state.round}</h2>
+      <p class="hint">You have no night action. Close your eyes and wait for dawn.</p></div>`;
+  }
+  const targets = state.roster.filter(p=>p.alive);
+  const verb = a.type==='mafia'?'Choose who to eliminate'
+            : a.type==='doctor'?'Choose who to protect'
+            : 'Choose who to investigate';
+  const teamHint = a.type==='mafia'
+    ? 'Your team votes as a group — the most-voted target dies (ties broken at random). Tap to lock your vote; you can change it until the host resolves the night.'
+    : a.type==='detective'
+    ? "Your team votes as a group — the most-voted target gets investigated (ties broken at random), and every detective sees the result. Tap to lock your vote; you can change it until the host resolves the night."
+    : 'Your team votes as a group — the most-voted target is protected (ties broken at random). Tap to lock your vote; you can change it until the host resolves the night.';
+  return `<div class="panel">
+    <h2 class="sec">Night ${state.round} — ${verb}</h2>
+    <div class="targets mt8">
+      ${targets.map(p=>`<button class="target ${a.chosen===p.id?'chosen':''}" onclick="nightPick('${a.type}','${p.id}')">
+        <span class="dot ${a.type}"></span>${escapeHtml(p.name)}</button>`).join('')}
+    </div>
+    <p class="hint mt8">${teamHint}</p>
+  </div>`;
+}
+window.nightPick=(type,targetId)=>socket.emit('nightAction',{type,targetId});
+
+function playerDay(){
+  const died=state.lastNight;
+  const summary = died ? (died.diedName?`<b>${escapeHtml(died.diedName)}</b> was killed last night.`
+              : died.saved?`The doctor saved the target — no one died.`:`No one died last night.`) : '';
+  const investigation = (state.you.role==='detective' && detectiveResult)
+    ? `<div class="panel mt"><h2 class="sec">Your team's investigation</h2>
+        <p class="hint">${escapeHtml(detectiveResult.name)} is <b>${detectiveResult.isMafia?'MAFIA':'NOT mafia'}</b>.</p></div>`
+    : '';
+  return `<div class="panel center">
+    <h2 class="sec">Day ${state.round}</h2>
+    <p class="hint">${summary}<br>Head to <b>WhatsApp</b> to discuss and vote. The host will enter the result and move us to night.</p>
+  </div>${investigation}`;
+}
+
+/* --------------------------- GAME OVER ---------------------------- */
+function gameOver(isHost){
+  const w=state.winner;
+  app.innerHTML=`
+    <div class="banner ${w}"><div>and the winner is</div><div class="big">${w==='town'?'The Town':'The Mafia'}</div></div>
+    <div class="panel mt"><h2 class="sec">Final roles</h2>${rosterBlock(true)}</div>
+    <div class="panel"><h2 class="sec">How it played out</h2>${logBlock()}</div>
+    ${isHost?`<div class="row mt"><button class="btn" onclick="newGame()">Play again (new roles)</button> <button class="btn ghost" onclick="endGame()">End game</button></div>`:`<p class="hint mt center">Thanks for playing — the host can start another round.</p>`}
+  `;
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+render();
+</script>
+</body>
+</html>

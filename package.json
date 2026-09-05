@@ -1,0 +1,14 @@
+{
+  "name": "mafia-god",
+  "version": "1.0.0",
+  "description": "A self-hostable Mafia (Werewolf) moderator. The server acts as 'God': it deals secret roles, runs the night phase, and resolves kills/saves/investigations. Day discussion happens on WhatsApp; the host enters the verdict.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
