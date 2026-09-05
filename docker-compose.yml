@@ -1,0 +1,29 @@
+services:
+  mafia-god:
+    build: .
+    image: mafia-god:latest
+    container_name: mafia-god
+    restart: unless-stopped
+    environment:
+      # 0.0.0.0 inside the container's own netns — not on the host.
+      # Reachability is decided by mafia-net, not by this bind address.
+      HOST: 0.0.0.0
+      PORT: "3000"
+    volumes:
+      - mafia-data:/app/data
+    networks: [mafia-net]
+    # deliberately no `ports:` — nothing is published to the host.
+    # The only route in is cloudflared, which also sits on mafia-net.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  mafia-net:
+    external: true
+
+volumes:
+  mafia-data:
