@@ -20,6 +20,10 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 const PORT = process.env.PORT || 3000;
+// bound to loopback by default (assumes a reverse proxy on the same host).
+// In a container there is no such proxy inside the netns, so HOST=0.0.0.0
+// lets the tunnel container reach it over the docker network.
+const HOST = process.env.HOST || '127.0.0.1';
 
 /* ----------------------------- state ------------------------------ */
 // rooms are kept in memory for speed, but mirrored to disk so a server
@@ -591,8 +595,8 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`Mafia God server running on http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Mafia God server running on http://${HOST}:${PORT}`);
 });
 
 // flush state to disk before pm2/systemd tears the process down
